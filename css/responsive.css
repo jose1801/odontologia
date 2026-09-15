@@ -1,0 +1,58 @@
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1100px) {
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 900px) {
+  .menu-toggle { display: flex; }
+
+  .sidebar {
+    position: fixed; top: var(--topbar-h); left: 0; height: calc(100vh - var(--topbar-h));
+    transform: translateX(-100%); transition: transform .25s ease; z-index: 60; box-shadow: var(--sombra);
+  }
+  .sidebar.open { transform: translateX(0); }
+
+  .sidebar-overlay {
+    display: none; position: fixed; inset: var(--topbar-h) 0 0 0; background: rgba(0,0,0,0.35); z-index: 50;
+  }
+  .sidebar-overlay.show { display: block; }
+
+  .topbar-date { display: none; }
+  .content { padding: 16px; }
+
+  .data-table thead { display: none; }
+  .data-table, .data-table tbody, .data-table tr, .data-table td { display: block; width: 100%; }
+  .data-table tr { background: var(--blanco); border: 1px solid var(--borde); border-radius: 10px; margin-bottom: 10px; padding: 8px 12px; }
+  .data-table td { border: none; padding: 6px 2px; display: flex; justify-content: space-between; gap: 10px; text-align: right; }
+  .data-table td::before { content: attr(data-label); font-weight: 600; color: var(--texto-suave); text-align: left; }
+  .data-table td.row-actions-cell { justify-content: flex-end; }
+
+  .form-row { flex-direction: column; align-items: stretch; }
+  .filters-bar input, .filters-bar select { min-width: 0; width: 100%; }
+
+  .modal { max-width: 100%; margin: 0 8px; }
+}
+
+@media (max-width: 480px) {
+  .stat-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat-card { padding: 12px; }
+  .brand-name { display: none; }
+  .user-name { display: none; }
+  .view-header h1 { font-size: 19px; }
+}
+
+/* ============================================================
+   IMPRESIÓN DEL ODONTOGRAMA
+   ============================================================ */
+@media print {
+  body * { visibility: hidden; }
+  #printArea, #printArea * { visibility: visible; }
+  #printArea {
+    position: absolute; top: 0; left: 0; width: 100%; padding: 20px;
+  }
+  .topbar, .sidebar, .sidebar-overlay, .global-search-bar, .modal-footer,
+  .tabs, .toast-container, .btn, .nav-menu, #btnImprimirOdontograma { display: none !important; }
+}
