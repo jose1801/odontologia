@@ -35,6 +35,7 @@ function renderEspecialidadesTable() {
       <td class="row-actions-cell">
         <div class="row-actions">
           <button class="btn-link" data-edit-esp="${e.id}">Editar</button>
+          <button class="btn-link text-danger" data-delete-esp="${e.id}">Eliminar</button>
         </div>
       </td>
     </tr>
@@ -42,6 +43,9 @@ function renderEspecialidadesTable() {
 
   tbody.querySelectorAll("[data-edit-esp]").forEach((btn) => {
     btn.addEventListener("click", () => abrirModalEspecialidad(btn.dataset.editEsp));
+  });
+  tbody.querySelectorAll("[data-delete-esp]").forEach((btn) => {
+    btn.addEventListener("click", () => eliminarEspecialidad(btn.dataset.deleteEsp));
   });
 }
 
@@ -106,3 +110,26 @@ async function guardarEspecialidad() {
   closeModal("modalEspecialidad");
   await loadEspecialidadesData();
 }
+
+async function eliminarEspecialidad(id) {
+  const esp = cacheEspecialidades.find((e) => e.id === id);
+  const nombre = esp ? esp.nombre : "esta especialidad";
+
+  if (!confirm(`¿Estás seguro de que deseas eliminar la especialidad "${nombre}"?\n\nAdvertencia: Asegúrate de que no existan odontólogos ni servicios asociados a esta especialidad.`)) {
+    return;
+  }
+
+  const { error } = await supabaseClient.from("especialidades").delete().eq("id", id);
+  if (error) {
+    if (typeof showToast === "function") {
+      showToast(handleSupabaseError(error), "error");
+    } else {
+      alert("Error: " + error.message);
+    }
+    return;
+  }
+
+  showToast("✓ Especialidad eliminada correctamente.", "success");
+  await loadEspecialidadesData();
+}
+window.eliminarEspecialidad = eliminarEspecialidad;

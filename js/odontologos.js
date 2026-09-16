@@ -41,6 +41,7 @@ function renderOdontologosTable() {
         <div class="row-actions">
           <button class="btn-link" data-edit-odo="${o.id}">Editar</button>
           <button class="btn-link" data-toggle-odo="${o.id}">${o.activo ? "Desactivar" : "Activar"}</button>
+          <button class="btn-link text-danger" data-delete-odo="${o.id}">Eliminar</button>
         </div>
       </td>
     </tr>
@@ -51,6 +52,9 @@ function renderOdontologosTable() {
   });
   tbody.querySelectorAll("[data-toggle-odo]").forEach((btn) => {
     btn.addEventListener("click", () => toggleActivoOdontologo(btn.dataset.toggleOdo));
+  });
+  tbody.querySelectorAll("[data-delete-odo]").forEach((btn) => {
+    btn.addEventListener("click", () => eliminarOdontologo(btn.dataset.deleteOdo));
   });
 }
 
@@ -138,3 +142,26 @@ async function guardarOdontologo() {
   closeModal("modalOdontologo");
   await loadOdontologosData();
 }
+
+async function eliminarOdontologo(id) {
+  const o = cacheOdontologos.find((x) => x.id === id);
+  const nombre = o ? `Dr(a). ${nombreCompleto(o)}` : "este odontólogo";
+
+  if (!confirm(`¿Estás seguro de que deseas eliminar a ${nombre}?\n\nAdvertencia: Si tiene citas o consultas vinculadas, la eliminación no será permitida por restricciones de la base de datos.`)) {
+    return;
+  }
+
+  const { error } = await supabaseClient.from("odontologos").delete().eq("id", id);
+  if (error) {
+    if (typeof showToast === "function") {
+      showToast(handleSupabaseError(error), "error");
+    } else {
+      alert("Error: " + error.message);
+    }
+    return;
+  }
+
+  showToast("✓ Odontólogo eliminado correctamente.", "success");
+  await loadOdontologosData();
+}
+window.eliminarOdontologo = eliminarOdontologo;

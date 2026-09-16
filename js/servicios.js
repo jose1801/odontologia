@@ -40,6 +40,7 @@ function renderServiciosTable() {
       <td class="row-actions-cell">
         <div class="row-actions">
           <button class="btn-link" data-edit-serv="${s.id}">Editar</button>
+          <button class="btn-link text-danger" data-delete-serv="${s.id}">Eliminar</button>
         </div>
       </td>
     </tr>
@@ -47,6 +48,9 @@ function renderServiciosTable() {
 
   tbody.querySelectorAll("[data-edit-serv]").forEach((btn) => {
     btn.addEventListener("click", () => abrirModalServicio(btn.dataset.editServ));
+  });
+  tbody.querySelectorAll("[data-delete-serv]").forEach((btn) => {
+    btn.addEventListener("click", () => eliminarServicio(btn.dataset.deleteServ));
   });
 }
 
@@ -121,3 +125,26 @@ async function guardarServicio() {
   closeModal("modalServicio");
   await loadServiciosData();
 }
+
+async function eliminarServicio(id) {
+  const s = cacheServicios.find((x) => x.id === id);
+  const nombre = s ? s.nombre : "este servicio";
+
+  if (!confirm(`¿Estás seguro de que deseas eliminar el servicio "${nombre}"?`)) {
+    return;
+  }
+
+  const { error } = await supabaseClient.from("servicios").delete().eq("id", id);
+  if (error) {
+    if (typeof showToast === "function") {
+      showToast(handleSupabaseError(error), "error");
+    } else {
+      alert("Error: " + error.message);
+    }
+    return;
+  }
+
+  showToast("✓ Servicio eliminado correctamente.", "success");
+  await loadServiciosData();
+}
+window.eliminarServicio = eliminarServicio;
