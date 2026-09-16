@@ -1,318 +1,469 @@
 // ============================================================
-// PACIENTES.JS - Listado, CRUD y perfil completo del paciente
+// MÓDULO DE PACIENTES - GESTIÓN Y PERFIL
 // ============================================================
 
 let cachePacientes = [];
-let pacienteActualId = null; // paciente abierto en el perfil
+let pacienteActualId = null;
 
-async function initPacientesModule() {
-  document.getElementById("btnNuevoPaciente").addEventListener("click", () => abrirModalPaciente());
-  document.getElementById("btnNuevoPacienteDesdeModal")?.addEventListener("click", () => abrirModalPaciente());
-  document.getElementById("btnGuardarPaciente").addEventListener("click", guardarPaciente);
+// Inicialización de escuchadores de eventos
+document.addEventListener("DOMContentLoaded", () => {
+  // Botón Nuevo Paciente en la vista principal
+  const btnNuevo = document.getElementById("btnNuevoPaciente");
+  if (btnNuevo) {
+    btnNuevo.addEventListener("click", () => abrirModalPaciente());
+  }
 
-  document.getElementById("pacientesSearch").addEventListener("input", (e) => {
-    renderPacientesTable(e.target.value.trim().toLowerCase());
-  });
+  // Guardar Paciente desde Modal
+  const btnGuardar = document.getElementById("btnGuardarPaciente");
+  if (btnGuardar) {
+    btnGuardar.addEventListener("click", guardarPaciente);
+  }
 
-  document.querySelectorAll("[data-perfil-tab]").forEach((tab) => {
-    tab.addEventListener("click", () => cambiarPerfilTab(tab.dataset.perfilTab));
-  });
+  const formModal = document.getElementById("formPaciente");
+  if (formModal) {
+    formModal.addEventListener("submit", (e) => {
+      e.preventDefault();
+      guardarPaciente();
+    });
+  }
 
-  await loadPacientesData();
-}
-window.initPacientesModule = initPacientesModule;
+  // Búsqueda en la tabla de pacientes
+  const inputSearch = document.getElementById("pacientesSearch");
+  if (inputSearch) {
+    inputSearch.addEventListener("input", (e) => {
+      renderPacientesTable(e.target.value.toLowerCase().trim());
+    });
+  }
 
+  // Botón volver desde perfil de paciente
+  const btnVolver = document.getElementById("btnVolverPacientes");
+  if (btnVolver) {
+    btnVolver.addEventListener("click", () => {
+      if (typeof showView === "function") {
+        showView("pacientes");
+      } else if (typeof goToSection === "function") {
+        goToSection("pacientes");
+      }
+    });
+  }
+
+  // Navegación por pestañas dentro del perfil
+  const perfilSection = document.getElementById("view-perfil-paciente");
+  if (perfilSection) {
+    perfilSection.querySelectorAll("[data-perfil-tab]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        switchPerfilTab(btn.dataset.perfilTab);
+      });
+    });
+  }
+
+  // Carga inicial de datos
+  if (typeof supabaseClient !== "undefined") {
+    loadPacientesData();
+  }
+});
+
+// Cargar lista de pacientes desde Supabase
 async function loadPacientesData() {
-  const { data: pacientes, error } = await supabaseClient.from("pacientes").select("*").order("apellidos");
-  if (error) return handleSupabaseError(error);
+  if (typeof supabaseClient === "undefined") {
+    console.warn("Supabase client no está inicializado.");
+    return;
+  }
 
-  // Última cita de cada paciente (consulta agregada simple en cliente)
-  const { data: citas } = await supabaseClient.from("citas").select("paciente_id, fecha, estado").order("fecha", { ascending: false });
+  const { data, error } = await supabaseClient
+    .from("pacientes")
+    .select("*")
+    .order("nombres", { ascending: true });
 
-  cachePacientes = (pacientes || []).map((p) => {
-    const ultimaCita = citas?.find((c) => c.paciente_id === p.id);
-    return { ...p, ultima_cita: ultimaCita?.fecha || null };
-  });
+  if (error) {
+    if (typeof showToast === "function") {
+      showToast(handleSupabaseError(error), "error");
+    } else {
+      console.error("Error al cargar pacientes:", error);
+    }
+    return;
+  }
 
+  cachePacientes = data || [];
   renderPacientesTable();
-  renderPacienteSelects();
+  populatePacientesSelects();
 }
-window.loadPacientesData = loadPacientesData;
-window.getPacientesCache = () => cachePacientes;
 
+// Renderizar la tabla de pacientes en `#pacientesTable`
 function renderPacientesTable(filtro = "") {
   const tbody = document.querySelector("#pacientesTable tbody");
+  if (!tbody) return;
+
   const lista = filtro
-    ? cachePacientes.filter((p) =>
-        p.nombres.toLowerCase().includes(filtro) ||
-        p.apellidos.toLowerCase().includes(filtro) ||
-        p.cedula.toLowerCase().includes(filtro) ||
-        (p.telefono || "").toLowerCase().includes(filtro))
+    ? cachePacientes.filter(
+        (p) =>
+          (p.nombres || "").toLowerCase().includes(filtro) ||
+          (p.apellidos || "").toLowerCase().includes(filtro) ||
+          (p.cedula || "").toLowerCase().includes(filtro) ||
+          (p.telefono || "").toLowerCase().includes(filtro)
+      )
     : cachePacientes;
 
   if (!lista.length) {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty-state">No hay pacientes registrados.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-state">No se encontraron pacientes registrados.</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = lista.map((p) => `
+  tbody.innerHTML = lista
+    .map(
+      (p) => `
     <tr>
-      <td data-label="Nombre"><a href="#" class="btn-link" data-open-perfil="${p.id}">${nombreCompleto(p)}</a></td>
-      <td data-label="Cédula">${p.cedula}</td>
-      <td data-label="Teléfono">${p.telefono || "--"}</td>
-      <td data-label="Nacimiento">${p.fecha_nacimiento ? formatFecha(p.fecha_nacimiento) : "--"}</td>
-      <td data-label="Última cita">${p.ultima_cita ? formatFecha(p.ultima_cita) : "Sin citas"}</td>
-      <td data-label="Estado"><span class="badge badge-activo">Activo</span></td>
-      <td class="row-actions-cell">
+      <td><a href="#" class="btn-link" data-open-perfil="${p.id}">${nombreCompleto(p)}</a></td>
+      <td>${p.cedula || "--"}</td>
+      <td>${p.telefono || "--"}</td>
+      <td>${p.fecha_nacimiento ? formatFecha(p.fecha_nacimiento) : "--"}</td>
+      <td>${p.ultima_cita ? formatFecha(p.ultima_cita) : "Sin citas"}</td>
+      <td><span class="badge badge-activo">Activo</span></td>
+      <td style="text-align: right;">
         <div class="row-actions">
-          <button class="btn-link" data-edit-pac="${p.id}">Editar</button>
+          <button type="button" class="btn-link" data-edit-pac="${p.id}">Editar</button>
+          <button type="button" class="btn-link text-danger" data-delete-pac="${p.id}">Eliminar</button>
         </div>
       </td>
     </tr>
-  `).join("");
+  `
+    )
+    .join("");
 
   tbody.querySelectorAll("[data-open-perfil]").forEach((el) => {
-    el.addEventListener("click", (e) => { e.preventDefault(); goToPacientePerfil(el.dataset.openPerfil); });
+    el.addEventListener("click", (e) => {
+      e.preventDefault();
+      goToPacientePerfil(el.dataset.openPerfil);
+    });
   });
+
   tbody.querySelectorAll("[data-edit-pac]").forEach((btn) => {
     btn.addEventListener("click", () => abrirModalPaciente(btn.dataset.editPac));
   });
+
+  tbody.querySelectorAll("[data-delete-pac]").forEach((btn) => {
+    btn.addEventListener("click", () => eliminarPaciente(btn.dataset.deletePac));
+  });
 }
 
-function renderPacienteSelects() {
-  const options = `<option value="">-- Selecciona un paciente --</option>` +
-    cachePacientes.map((p) => `<option value="${p.id}">${nombreCompleto(p)} · ${p.cedula}</option>`).join("");
-  const el = document.getElementById("citaPaciente");
-  if (el) el.innerHTML = options;
+// Llenar selectores de paciente en modales como el de Citas
+function populatePacientesSelects() {
+  const selectCita = document.getElementById("citaPaciente");
+  if (selectCita) {
+    const valPrevio = selectCita.value;
+    selectCita.innerHTML = `<option value="">Seleccione un paciente...</option>` +
+      cachePacientes
+        .map((p) => `<option value="${p.id}">${nombreCompleto(p)} (${p.cedula || "S/I"})</option>`)
+        .join("");
+    if (valPrevio) selectCita.value = valPrevio;
+  }
 }
 
-// ------------------------------------------------------------
-// MODAL CREAR / EDITAR PACIENTE
-// ------------------------------------------------------------
+// Abrir Modal para Crear o Editar
 function abrirModalPaciente(id = null) {
   const form = document.getElementById("formPaciente");
-  form.reset();
-  document.getElementById("pacienteFormError").classList.add("hidden");
-  document.getElementById("pacienteId").value = "";
+  const modal = document.getElementById("modalPaciente");
+  const title = document.getElementById("modalPacienteTitulo");
+  const errorDiv = document.getElementById("pacienteFormError");
+
+  if (!modal) {
+    console.error("Error: El modal 'modalPaciente' no existe en el DOM.");
+    return;
+  }
+
+  if (form) form.reset();
+  if (errorDiv) {
+    errorDiv.textContent = "";
+    errorDiv.classList.add("hidden");
+  }
+
+  const pacienteIdInput = document.getElementById("pacienteId");
+  if (pacienteIdInput) pacienteIdInput.value = "";
 
   if (id) {
-    const p = cachePacientes.find((x) => x.id === id);
-    document.getElementById("modalPacienteTitulo").textContent = "Editar paciente";
-    document.getElementById("pacienteId").value = p.id;
-    document.getElementById("pacienteNombres").value = p.nombres;
-    document.getElementById("pacienteApellidos").value = p.apellidos;
-    document.getElementById("pacienteCedula").value = p.cedula;
-    document.getElementById("pacienteNacimiento").value = p.fecha_nacimiento || "";
-    document.getElementById("pacienteSexo").value = p.sexo || "";
-    document.getElementById("pacienteTelefono").value = p.telefono || "";
-    document.getElementById("pacienteEmail").value = p.email || "";
-    document.getElementById("pacienteDireccion").value = p.direccion || "";
-    document.getElementById("pacienteContactoEmergencia").value = p.contacto_emergencia || "";
-    document.getElementById("pacienteTelefonoEmergencia").value = p.telefono_emergencia || "";
-    document.getElementById("pacienteAlergias").value = p.alergias || "";
-    document.getElementById("pacienteMedicamentos").value = p.medicamentos || "";
-    document.getElementById("pacienteAntecedentes").value = p.antecedentes || "";
-    document.getElementById("pacienteObservaciones").value = p.observaciones || "";
+    const p = cachePacientes.find((item) => item.id === id);
+    if (p) {
+      if (title) title.textContent = "Editar paciente";
+      if (pacienteIdInput) pacienteIdInput.value = p.id;
+
+      setInputValue("pacienteNombres", p.nombres);
+      setInputValue("pacienteApellidos", p.apellidos);
+      setInputValue("pacienteCedula", p.cedula);
+      setInputValue("pacienteNacimiento", p.fecha_nacimiento);
+      setInputValue("pacienteSexo", p.sexo || "");
+      setInputValue("pacienteTelefono", p.telefono);
+      setInputValue("pacienteEmail", p.email);
+      setInputValue("pacienteDireccion", p.direccion);
+      setInputValue("pacienteContactoEmergencia", p.contacto_emergencia);
+      setInputValue("pacienteTelefonoEmergencia", p.telefono_emergencia);
+      setInputValue("pacienteAlergias", p.alergias);
+      setInputValue("pacienteMedicamentos", p.medicamentos);
+      setInputValue("pacienteAntecedentes", p.antecedentes);
+      setInputValue("pacienteObservaciones", p.observaciones);
+    }
   } else {
-    document.getElementById("modalPacienteTitulo").textContent = "Nuevo paciente";
+    if (title) title.textContent = "Nuevo paciente";
   }
+
   openModal("modalPaciente");
 }
 
+// Guardar o Actualizar Paciente en Supabase
 async function guardarPaciente() {
-  const id = document.getElementById("pacienteId").value;
-  const errorBox = document.getElementById("pacienteFormError");
-  errorBox.classList.add("hidden");
+  const btnGuardar = document.getElementById("btnGuardarPaciente");
+  const errorDiv = document.getElementById("pacienteFormError");
 
-  const nombres = document.getElementById("pacienteNombres").value.trim();
-  const apellidos = document.getElementById("pacienteApellidos").value.trim();
-  const cedula = document.getElementById("pacienteCedula").value.trim();
+  if (errorDiv) {
+    errorDiv.textContent = "";
+    errorDiv.classList.add("hidden");
+  }
+
+  const nombres = getInputValue("pacienteNombres");
+  const apellidos = getInputValue("pacienteApellidos");
+  const cedula = getInputValue("pacienteCedula");
 
   if (!nombres || !apellidos || !cedula) {
-    errorBox.textContent = "Nombres, apellidos y cédula son obligatorios.";
-    errorBox.classList.remove("hidden");
+    if (errorDiv) {
+      errorDiv.textContent = "Por favor complete los campos obligatorios (*).";
+      errorDiv.classList.remove("hidden");
+    }
     return;
   }
 
+  if (btnGuardar) btnGuardar.disabled = true;
+
+  const id = getInputValue("pacienteId");
   const payload = {
-    nombres, apellidos, cedula,
-    fecha_nacimiento: document.getElementById("pacienteNacimiento").value || null,
-    sexo: document.getElementById("pacienteSexo").value || null,
-    telefono: document.getElementById("pacienteTelefono").value.trim() || null,
-    email: document.getElementById("pacienteEmail").value.trim() || null,
-    direccion: document.getElementById("pacienteDireccion").value.trim() || null,
-    contacto_emergencia: document.getElementById("pacienteContactoEmergencia").value.trim() || null,
-    telefono_emergencia: document.getElementById("pacienteTelefonoEmergencia").value.trim() || null,
-    alergias: document.getElementById("pacienteAlergias").value.trim() || null,
-    medicamentos: document.getElementById("pacienteMedicamentos").value.trim() || null,
-    antecedentes: document.getElementById("pacienteAntecedentes").value.trim() || null,
-    observaciones: document.getElementById("pacienteObservaciones").value.trim() || null,
+    nombres: nombres,
+    apellidos: apellidos,
+    cedula: cedula,
+    fecha_nacimiento: getInputValue("pacienteNacimiento") || null,
+    sexo: getInputValue("pacienteSexo") || null,
+    telefono: getInputValue("pacienteTelefono"),
+    email: getInputValue("pacienteEmail"),
+    direccion: getInputValue("pacienteDireccion"),
+    contacto_emergencia: getInputValue("pacienteContactoEmergencia"),
+    telefono_emergencia: getInputValue("pacienteTelefonoEmergencia"),
+    alergias: getInputValue("pacienteAlergias"),
+    medicamentos: getInputValue("pacienteMedicamentos"),
+    antecedentes: getInputValue("pacienteAntecedentes"),
+    observaciones: getInputValue("pacienteObservaciones")
   };
 
-  let nuevoId = id;
+  let res;
   if (id) {
-    const { error } = await supabaseClient.from("pacientes").update(payload).eq("id", id);
-    if (error) { errorBox.textContent = handleSupabaseError(error); errorBox.classList.remove("hidden"); return; }
+    res = await supabaseClient.from("pacientes").update(payload).eq("id", id);
   } else {
-    const { data, error } = await supabaseClient.from("pacientes").insert(payload).select().single();
-    if (error) { errorBox.textContent = handleSupabaseError(error); errorBox.classList.remove("hidden"); return; }
-    nuevoId = data.id;
+    res = await supabaseClient.from("pacientes").insert([payload]);
   }
 
-  showToast(id ? "✓ Paciente actualizado correctamente." : "✓ Paciente registrado correctamente.", "success");
+  if (btnGuardar) btnGuardar.disabled = false;
+
+  if (res.error) {
+    const errMsg = handleSupabaseError(res.error);
+    if (errorDiv) {
+      errorDiv.textContent = errMsg;
+      errorDiv.classList.remove("hidden");
+    } else if (typeof showToast === "function") {
+      showToast(errMsg, "error");
+    }
+    return;
+  }
+
+  if (typeof showToast === "function") {
+    showToast(`✓ Paciente ${id ? "actualizado" : "registrado"} exitosamente.`, "success");
+  }
+
   closeModal("modalPaciente");
   await loadPacientesData();
 
-  // Si el modal se abrió desde "Nueva cita", seleccionar automáticamente al nuevo paciente
-  const citaPacienteSelect = document.getElementById("citaPaciente");
-  if (!id && citaPacienteSelect && !document.getElementById("modalCita").classList.contains("hidden")) {
-    citaPacienteSelect.value = nuevoId;
-    citaPacienteSelect.dispatchEvent(new Event("change"));
+  if (pacienteActualId === id) {
+    goToPacientePerfil(id);
   }
 }
 
-// ------------------------------------------------------------
-// PERFIL DEL PACIENTE
-// ------------------------------------------------------------
-async function abrirPerfilPaciente(id) {
+// Eliminar Paciente
+async function eliminarPaciente(id) {
+  const paciente = cachePacientes.find((p) => p.id === id);
+  if (!paciente) return;
+
+  const confirmacion = confirm(
+    `¿Estás seguro de que deseas eliminar al paciente ${nombreCompleto(paciente)}?\n\n` +
+    `Advertencia: Esta acción no se puede deshacer y puede afectar registros vinculados.`
+  );
+
+  if (!confirmacion) return;
+
+  const { error } = await supabaseClient.from("pacientes").delete().eq("id", id);
+
+  if (error) {
+    if (typeof showToast === "function") {
+      showToast(handleSupabaseError(error), "error");
+    } else {
+      alert("Error: " + error.message);
+    }
+    return;
+  }
+
+  if (typeof showToast === "function") {
+    showToast("✓ Paciente eliminado correctamente.", "success");
+  }
+
+  if (pacienteActualId === id) {
+    if (typeof showView === "function") {
+      showView("pacientes");
+    } else if (typeof goToSection === "function") {
+      goToSection("pacientes");
+    }
+  }
+
+  await loadPacientesData();
+}
+
+// Cargar perfil del paciente
+async function goToPacientePerfil(id) {
   pacienteActualId = id;
-  const { data: p, error } = await supabaseClient.from("pacientes").select("*").eq("id", id).single();
-  if (error) return handleSupabaseError(error);
+  const p = cachePacientes.find((item) => item.id === id);
+  if (!p) return;
 
-  const edad = calcularEdad(p.fecha_nacimiento);
-  document.getElementById("perfilPacienteHeader").innerHTML = `
-    <div class="ph-avatar">${(p.nombres[0] || "P").toUpperCase()}</div>
-    <div>
-      <h2>${nombreCompleto(p)}</h2>
-      <div class="ph-meta">
-        <span>🪪 ${p.cedula}</span>
-        <span>📞 ${p.telefono || "--"}</span>
-        <span>🎂 ${p.fecha_nacimiento ? formatFecha(p.fecha_nacimiento) + (edad !== null ? ` (${edad} años)` : "") : "--"}</span>
+  const headerCont = document.getElementById("perfilPacienteHeader");
+  if (headerCont) {
+    headerCont.innerHTML = `
+      <div class="user-chip" style="font-size: 1.5rem; width: 48px; height: 48px;">
+        ${(p.nombres || "P")[0].toUpperCase()}
       </div>
-    </div>
-  `;
+      <div>
+        <h2 style="margin:0">${nombreCompleto(p)}</h2>
+        <p class="field-hint" style="margin: 4px 0 0 0;">
+          Cédula: ${p.cedula || "S/I"} | Teléfono: ${p.telefono || "N/A"} | Email: ${p.email || "N/A"}
+        </p>
+      </div>
+    `;
+  }
 
-  cambiarPerfilTab("info");
-  await renderPerfilInfo(p);
-}
-window.abrirPerfilPaciente = abrirPerfilPaciente;
+  if (typeof showView === "function") {
+    showView("perfil-paciente");
+  } else if (typeof goToSection === "function") {
+    goToSection("perfil-paciente");
+  }
 
-function cambiarPerfilTab(tab) {
-  document.querySelectorAll("[data-perfil-tab]").forEach((btn) => btn.classList.toggle("active", btn.dataset.perfilTab === tab));
-  document.querySelectorAll(".perfil-tab-content").forEach((c) => c.classList.remove("active"));
-  document.getElementById(`perfilTab-${tab}`).classList.add("active");
-
-  if (!pacienteActualId) return;
-  if (tab === "citas") renderPerfilCitas();
-  if (tab === "odontograma") window.renderOdontogramaPaciente?.(pacienteActualId);
-  if (tab === "tratamientos") renderPerfilTratamientos();
-  if (tab === "historial") renderPerfilHistorial();
+  switchPerfilTab("info");
 }
 
-async function renderPerfilInfo(p) {
+// Cambiar pestañas del perfil de paciente
+function switchPerfilTab(tab) {
+  const perfilSection = document.getElementById("view-perfil-paciente");
+  if (!perfilSection) return;
+
+  perfilSection.querySelectorAll("[data-perfil-tab]").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.perfilTab === tab);
+  });
+
+  perfilSection.querySelectorAll(".perfil-tab-content").forEach((c) => {
+    c.classList.remove("active");
+    c.style.display = "none";
+  });
+
+  const activeContent = document.getElementById(`perfilTab-${tab}`);
+  if (activeContent) {
+    activeContent.classList.add("active");
+    activeContent.style.display = "block";
+  }
+
+  const p = cachePacientes.find((item) => item.id === pacienteActualId);
+  if (!p) return;
+
+  if (tab === "info") renderPerfilInfo(p);
+  if (tab === "citas" && typeof loadPerfilCitas === "function") loadPerfilCitas(p.id);
+  if (tab === "odontograma" && typeof initOdontograma === "function") initOdontograma(p.id);
+  if (tab === "tratamientos" && typeof loadPerfilTratamientos === "function") loadPerfilTratamientos(p.id);
+  if (tab === "historial" && typeof loadPerfilHistorial === "function") loadPerfilHistorial(p.id);
+}
+
+// Renderizar pestaña Información
+function renderPerfilInfo(p) {
   const cont = document.getElementById("perfilTab-info");
+  if (!cont) return;
+
   cont.innerHTML = `
-    <div class="panel">
-      <h4 class="form-section-title" style="margin-top:0">Datos personales</h4>
-      <p><strong>Sexo:</strong> ${p.sexo || "--"} &nbsp; <strong>Email:</strong> ${p.email || "--"} &nbsp; <strong>Dirección:</strong> ${p.direccion || "--"}</p>
-      <h4 class="form-section-title">Contacto de emergencia</h4>
-      <p><strong>Nombre:</strong> ${p.contacto_emergencia || "--"} &nbsp; <strong>Teléfono:</strong> ${p.telefono_emergencia || "--"}</p>
-      <h4 class="form-section-title">Información clínica</h4>
+    <div class="panel" style="margin-top: 1rem;">
+      <h4 class="form-section-title" style="margin-top:0">Datos Personales</h4>
+      <p><strong>Sexo:</strong> ${p.sexo || "--"} &nbsp;|&nbsp; <strong>Nacimiento:</strong> ${p.fecha_nacimiento ? formatFecha(p.fecha_nacimiento) : "--"}</p>
+      <p><strong>Dirección:</strong> ${p.direccion || "--"}</p>
+      
+      <h4 class="form-section-title">Contacto de Emergencia</h4>
+      <p><strong>Nombre:</strong> ${p.contacto_emergencia || "--"} &nbsp;|&nbsp; <strong>Teléfono:</strong> ${p.telefono_emergencia || "--"}</p>
+      
+      <h4 class="form-section-title">Información Clínica Básica</h4>
       <p><strong>Alergias:</strong> ${p.alergias || "Ninguna registrada"}</p>
-      <p><strong>Medicamentos actuales:</strong> ${p.medicamentos || "Ninguno registrado"}</p>
-      <p><strong>Antecedentes:</strong> ${p.antecedentes || "Ninguno registrado"}</p>
+      <p><strong>Medicamentos Actuales:</strong> ${p.medicamentos || "Ninguno registrado"}</p>
+      <p><strong>Antecedentes Relevantes:</strong> ${p.antecedentes || "Ninguno registrado"}</p>
       <p><strong>Observaciones:</strong> ${p.observaciones || "--"}</p>
-      <button class="btn btn-outline btn-sm" id="btnEditarDesdesPerfil">Editar información</button>
+      
+      <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
+        <button type="button" class="btn btn-outline btn-sm" id="btnEditarDesdePerfil">Editar información</button>
+        <button type="button" class="btn btn-danger btn-sm" id="btnEliminarDesdePerfil">Eliminar paciente</button>
+      </div>
     </div>
   `;
-  document.getElementById("btnEditarDesdesPerfil").addEventListener("click", () => abrirModalPaciente(p.id));
+
+  const btnEdit = document.getElementById("btnEditarDesdePerfil");
+  if (btnEdit) btnEdit.addEventListener("click", () => abrirModalPaciente(p.id));
+
+  const btnDel = document.getElementById("btnEliminarDesdePerfil");
+  if (btnDel) btnDel.addEventListener("click", () => eliminarPaciente(p.id));
 }
 
-async function renderPerfilCitas() {
-  const cont = document.getElementById("perfilTab-citas");
-  cont.innerHTML = `<div class="panel"><div class="empty-state">Cargando...</div></div>`;
-
-  const { data, error } = await supabaseClient
-    .from("citas")
-    .select("*, odontologos(nombres, apellidos), servicios(nombre)")
-    .eq("paciente_id", pacienteActualId)
-    .order("fecha", { ascending: false });
-
-  if (error) { cont.innerHTML = `<div class="panel"><div class="empty-state">Error al cargar citas.</div></div>`; return; }
-
-  if (!data.length) {
-    cont.innerHTML = `<div class="panel"><div class="empty-state">No hay citas registradas para este paciente.</div></div>`;
-    return;
+// Helper para abrir modales
+function openModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) {
+    modal.classList.remove("hidden");
+    modal.classList.add("active");
   }
-
-  cont.innerHTML = `<div class="panel"><div class="list">${data.map((c) => `
-    <div class="cita-card">
-      <div class="cita-hora">${formatFecha(c.fecha)}<br>${formatHora(c.hora_inicio)}</div>
-      <div class="cita-main">
-        <div class="cita-paciente">${c.servicios?.nombre || ""}</div>
-        <div class="cita-detalle">Dr(a). ${nombreCompleto(c.odontologos)}</div>
-      </div>
-      <span class="badge badge-${c.estado}">${labelEstadoCita(c.estado)}</span>
-    </div>
-  `).join("")}</div></div>`;
 }
 
-async function renderPerfilTratamientos() {
-  const cont = document.getElementById("perfilTab-tratamientos");
-  cont.innerHTML = `<div class="panel"><div class="empty-state">Cargando...</div></div>`;
-
-  const { data, error } = await supabaseClient
-    .from("tratamientos")
-    .select("*, odontologos(nombres, apellidos), servicios(nombre)")
-    .eq("paciente_id", pacienteActualId)
-    .order("fecha_inicio", { ascending: false });
-
-  if (error || !data?.length) {
-    cont.innerHTML = `<div class="panel"><div class="empty-state">No hay tratamientos registrados.</div></div>`;
-    return;
+// Helper para cerrar modales
+function closeModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) {
+    modal.classList.add("hidden");
+    modal.classList.remove("active");
   }
-
-  cont.innerHTML = `<div class="panel"><div class="table-wrap"><table class="data-table">
-    <thead><tr><th>Servicio</th><th>Pieza</th><th>Odontólogo</th><th>Estado</th><th>Inicio</th></tr></thead>
-    <tbody>
-      ${data.map((t) => `
-        <tr>
-          <td data-label="Servicio">${t.servicios?.nombre || "--"}</td>
-          <td data-label="Pieza">${t.pieza_dental || "--"}</td>
-          <td data-label="Odontólogo">Dr(a). ${nombreCompleto(t.odontologos)}</td>
-          <td data-label="Estado"><span class="badge badge-${t.estado}">${labelEstadoTratamiento(t.estado)}</span></td>
-          <td data-label="Inicio">${formatFecha(t.fecha_inicio)}</td>
-        </tr>`).join("")}
-    </tbody>
-  </table></div></div>`;
 }
 
-async function renderPerfilHistorial() {
-  const cont = document.getElementById("perfilTab-historial");
-  cont.innerHTML = `<div class="panel"><div class="empty-state">Cargando...</div></div>`;
-
-  const { data: hist, error } = await supabaseClient
-    .from("odontograma_historial")
-    .select("*, odontologos(nombres, apellidos)")
-    .eq("paciente_id", pacienteActualId)
-    .order("created_at", { ascending: false });
-
-  if (error || !hist?.length) {
-    cont.innerHTML = `<div class="panel"><div class="empty-state">No hay eventos en el historial clínico.</div></div>`;
-    return;
-  }
-
-  cont.innerHTML = `<div class="panel"><div class="list">${hist.map((h) => `
-    <div class="cita-card">
-      <div class="cita-hora">${new Date(h.created_at).toLocaleDateString("es-ES")}</div>
-      <div class="cita-main">
-        <div class="cita-paciente">Pieza ${h.pieza_dental} · ${h.superficie}</div>
-        <div class="cita-detalle">
-          ${h.estado_anterior ? `${h.estado_anterior} → ` : ""}${h.estado_nuevo}
-          ${h.observaciones ? ` · ${h.observaciones}` : ""}
-          ${h.odontologos ? ` · Dr(a). ${nombreCompleto(h.odontologos)}` : ""}
-        </div>
-      </div>
-    </div>
-  `).join("")}</div></div>`;
+// Helper de formato de nombres
+function nombreCompleto(p) {
+  return `${p.nombres || ""} ${p.apellidos || ""}`.trim();
 }
+
+// Helper de formato de fechas YYYY-MM-DD -> DD/MM/YYYY
+function formatFecha(fechaStr) {
+  if (!fechaStr) return "--";
+  const parts = fechaStr.split("-");
+  if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  return fechaStr;
+}
+
+function setInputValue(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.value = val || "";
+}
+
+function getInputValue(id) {
+  const el = document.getElementById(id);
+  return el ? el.value.trim() : "";
+}
+
+function handleSupabaseError(error) {
+  return error ? error.message : "Ocurrió un error inesperado";
+}
+
+// Funciones expuestas globalmente
+window.loadPacientesData = loadPacientesData;
+window.abrirModalPaciente = abrirModalPaciente;
+window.eliminarPaciente = eliminarPaciente;
+window.goToPacientePerfil = goToPacientePerfil;
+window.openModal = openModal;
+window.closeModal = closeModal;
