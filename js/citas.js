@@ -7,9 +7,27 @@ let citasFechaRef = new Date();
 let cacheServicioSeleccionado = null;
 
 async function initCitasModule() {
-  document.getElementById("btnNuevaCita").addEventListener("click", () => abrirModalCita());
-  document.getElementById("btnGuardarCita").addEventListener("click", guardarCita);
+  // Eventos principales de la vista
+  const btnNuevaCita = document.getElementById("btnNuevaCita");
+  if (btnNuevaCita) btnNuevaCita.addEventListener("click", () => abrirModalCita());
 
+  const btnNuevaCitaDash = document.getElementById("btnNuevaCitaDashboard");
+  if (btnNuevaCitaDash) btnNuevaCitaDash.addEventListener("click", () => abrirModalCita());
+
+  const btnGuardarCita = document.getElementById("btnGuardarCita");
+  if (btnGuardarCita) btnGuardarCita.addEventListener("click", guardarCita);
+
+  // VINCULACIÓN DEL BOTÓN "+ NUEVO PACIENTE" DENTRO DEL MODAL DE CITAS
+  const btnNuevoPacModal = document.getElementById("btnNuevoPacienteDesdeModal");
+  if (btnNuevoPacModal) {
+    btnNuevoPacModal.addEventListener("click", () => {
+      if (typeof abrirModalPaciente === "function") {
+        abrirModalPaciente();
+      }
+    });
+  }
+
+  // Cambio de vistas (Día / Semana / Mes)
   document.querySelectorAll("[data-view-citas]").forEach((btn) => {
     btn.addEventListener("click", () => {
       document.querySelectorAll("[data-view-citas]").forEach((b) => b.classList.remove("active"));
@@ -19,11 +37,24 @@ async function initCitasModule() {
     });
   });
 
-  document.getElementById("citasPrev").addEventListener("click", () => moverFechaCitas(-1));
-  document.getElementById("citasNext").addEventListener("click", () => moverFechaCitas(1));
-  document.getElementById("citasHoy").addEventListener("click", () => { citasFechaRef = new Date(); loadCitasData(); });
+  // Navegación de fechas
+  const btnPrev = document.getElementById("citasPrev");
+  if (btnPrev) btnPrev.addEventListener("click", () => moverFechaCitas(-1));
 
-  document.getElementById("citaServicio").addEventListener("change", actualizarInfoServicioCita);
+  const btnNext = document.getElementById("citasNext");
+  if (btnNext) btnNext.addEventListener("click", () => moverFechaCitas(1));
+
+  const btnHoy = document.getElementById("citasHoy");
+  if (btnHoy) {
+    btnHoy.addEventListener("click", () => {
+      citasFechaRef = new Date();
+      loadCitasData();
+    });
+  }
+
+  // Cambio de servicio para calcular duración y precio en vivo
+  const selectServicio = document.getElementById("citaServicio");
+  if (selectServicio) selectServicio.addEventListener("change", actualizarInfoServicioCita);
 
   await loadCitasData();
 }
@@ -54,12 +85,16 @@ function rangoFechasVista() {
 
 async function loadCitasData() {
   const { desde, hasta } = rangoFechasVista();
-  document.getElementById("citasFechaLabel").textContent =
-    citasVistaActual === "dia"
-      ? citasFechaRef.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
-      : `${formatFecha(desde)} - ${formatFecha(hasta)}`;
+  const labelFecha = document.getElementById("citasFechaLabel");
+  if (labelFecha) {
+    labelFecha.textContent =
+      citasVistaActual === "dia"
+        ? citasFechaRef.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+        : `${formatFecha(desde)} - ${formatFecha(hasta)}`;
+  }
 
   const listEl = document.getElementById("citasList");
+  if (!listEl) return;
   listEl.innerHTML = `<div class="empty-state">Cargando...</div>`;
 
   const { data, error } = await supabaseClient
@@ -70,7 +105,7 @@ async function loadCitasData() {
 
   if (error) { listEl.innerHTML = `<div class="empty-state">Error al cargar las citas.</div>`; return; }
 
-  if (!data.length) {
+  if (!data || !data.length) {
     listEl.innerHTML = `<div class="empty-state">No hay citas programadas para este periodo.</div>`;
     return;
   }
@@ -84,10 +119,10 @@ async function loadCitasData() {
       </div>
       <span class="badge badge-${c.estado}">${labelEstadoCita(c.estado)}</span>
       <div class="cita-actions">
-        ${c.estado === "pendiente" ? `<button class="btn btn-outline btn-sm" data-accion="confirmada" data-id="${c.id}">Confirmar</button>` : ""}
-        ${["pendiente","confirmada"].includes(c.estado) ? `<button class="btn btn-outline btn-sm" data-accion="atendida" data-id="${c.id}">Atender</button>` : ""}
-        ${["pendiente","confirmada"].includes(c.estado) ? `<button class="btn btn-outline btn-sm" data-edit-cita="${c.id}">Editar</button>` : ""}
-        ${["pendiente","confirmada"].includes(c.estado) ? `<button class="btn btn-danger btn-sm" data-accion="cancelada" data-id="${c.id}">Cancelar</button>` : ""}
+        ${c.estado === "pendiente" ? `<button type="button" class="btn btn-outline btn-sm" data-accion="confirmada" data-id="${c.id}">Confirmar</button>` : ""}
+        ${["pendiente","confirmada"].includes(c.estado) ? `<button type="button" class="btn btn-outline btn-sm" data-accion="atendida" data-id="${c.id}">Atender</button>` : ""}
+        ${["pendiente","confirmada"].includes(c.estado) ? `<button type="button" class="btn btn-outline btn-sm" data-edit-cita="${c.id}">Editar</button>` : ""}
+        ${["pendiente","confirmada"].includes(c.estado) ? `<button type="button" class="btn btn-danger btn-sm" data-accion="cancelada" data-id="${c.id}">Cancelar</button>` : ""}
       </div>
     </div>
   `).join("");
@@ -105,13 +140,18 @@ window.loadCitasData = loadCitasData;
 
 async function cambiarEstadoCita(id, nuevoEstado) {
   const accionTexto = { confirmada: "confirmar", atendida: "marcar como atendida", cancelada: "cancelar" }[nuevoEstado];
-  confirmAction(`¿${accionTexto.charAt(0).toUpperCase() + accionTexto.slice(1)} cita?`, `Esta acción cambiará el estado de la cita.`, async () => {
-    const { error } = await supabaseClient.from("citas").update({ estado: nuevoEstado }).eq("id", id);
-    if (error) return handleSupabaseError(error);
-    showToast("✓ Cita actualizada correctamente.", "success");
-    await loadCitasData();
-    await loadDashboardData();
-  });
+  
+  if (!confirm(`¿Deseas ${accionTexto} esta cita?`)) return;
+
+  const { error } = await supabaseClient.from("citas").update({ estado: nuevoEstado }).eq("id", id);
+  if (error) {
+    if (typeof showToast === "function") showToast(handleSupabaseError(error), "error");
+    return;
+  }
+  
+  if (typeof showToast === "function") showToast("✓ Cita actualizada correctamente.", "success");
+  await loadCitasData();
+  if (typeof loadDashboardData === "function") await loadDashboardData();
 }
 
 // ------------------------------------------------------------
@@ -119,45 +159,63 @@ async function cambiarEstadoCita(id, nuevoEstado) {
 // ------------------------------------------------------------
 function abrirModalCita(id = null) {
   const form = document.getElementById("formCita");
-  form.reset();
-  document.getElementById("citaFormError").classList.add("hidden");
-  document.getElementById("citaId").value = "";
-  document.getElementById("citaServicioInfo").textContent = "";
-  document.getElementById("citaFecha").value = dateToYMD(citasVistaActual === "dia" ? citasFechaRef : new Date());
+  if (form) form.reset();
+
+  const errorBox = document.getElementById("citaFormError");
+  if (errorBox) errorBox.classList.add("hidden");
+
+  const citaId = document.getElementById("citaId");
+  if (citaId) citaId.value = "";
+
+  const infoServ = document.getElementById("citaServicioInfo");
+  if (infoServ) infoServ.textContent = "";
+
+  const fechaInput = document.getElementById("citaFecha");
+  if (fechaInput) fechaInput.value = dateToYMD(citasVistaActual === "dia" ? citasFechaRef : new Date());
+
+  const titulo = document.getElementById("modalCitaTitulo");
 
   if (id) {
     const c = (window._citasCacheData || []).find((x) => x.id === id);
-    document.getElementById("modalCitaTitulo").textContent = "Editar cita";
-    document.getElementById("citaId").value = c.id;
-    document.getElementById("citaPaciente").value = c.paciente_id;
-    document.getElementById("citaOdontologo").value = c.odontologo_id;
-    document.getElementById("citaServicio").value = c.servicio_id;
-    document.getElementById("citaFecha").value = c.fecha;
-    document.getElementById("citaHora").value = formatHora(c.hora_inicio);
-    document.getElementById("citaMotivo").value = c.motivo || "";
-    document.getElementById("citaObservaciones").value = c.observaciones || "";
-    document.getElementById("citaEstado").value = c.estado;
-    actualizarInfoServicioCita();
+    if (c) {
+      if (titulo) titulo.textContent = "Editar cita";
+      if (citaId) citaId.value = c.id;
+      setInputValue("citaPaciente", c.paciente_id);
+      setInputValue("citaOdontologo", c.odontologo_id);
+      setInputValue("citaServicio", c.servicio_id);
+      setInputValue("citaFecha", c.fecha);
+      setInputValue("citaHora", formatHora(c.hora_inicio));
+      setInputValue("citaMotivo", c.motivo || "");
+      setInputValue("citaObservaciones", c.observaciones || "");
+      setInputValue("citaEstado", c.estado);
+      actualizarInfoServicioCita();
+    }
   } else {
-    document.getElementById("modalCitaTitulo").textContent = "Agendar cita";
-    document.getElementById("citaEstado").value = "pendiente";
+    if (titulo) titulo.textContent = "Agendar cita";
+    setInputValue("citaEstado", "pendiente");
   }
-  openModal("modalCita");
+
+  if (typeof openModal === "function") {
+    openModal("modalCita");
+  }
 }
 window.abrirModalCita = abrirModalCita;
 
 function actualizarInfoServicioCita() {
-  const servicioId = document.getElementById("citaServicio").value;
+  const selectServicio = document.getElementById("citaServicio");
+  if (!selectServicio) return;
+
+  const servicioId = selectServicio.value;
   const servicio = (window.getServiciosCache?.() || []).find((s) => s.id === servicioId);
   cacheServicioSeleccionado = servicio || null;
   const info = document.getElementById("citaServicioInfo");
-  info.textContent = servicio ? `Duración: ${servicio.duracion_minutos} min · Precio: ${formatMoneda(servicio.precio)}` : "";
+  if (info) {
+    info.textContent = servicio ? `Duración: ${servicio.duracion_minutos} min · Precio: ${formatMoneda(servicio.precio)}` : "";
+  }
 }
 
-/**
- * Suma minutos a una hora en formato "HH:MM" y devuelve "HH:MM".
- */
 function sumarMinutos(horaStr, minutos) {
+  if (!horaStr) return "00:00";
   const [h, m] = horaStr.split(":").map(Number);
   const total = h * 60 + m + minutos;
   const hh = String(Math.floor((total % 1440) / 60)).padStart(2, "0");
@@ -167,42 +225,50 @@ function sumarMinutos(horaStr, minutos) {
 
 async function guardarCita() {
   const errorBox = document.getElementById("citaFormError");
-  errorBox.classList.add("hidden");
+  if (errorBox) errorBox.classList.add("hidden");
 
-  const id = document.getElementById("citaId").value;
-  const pacienteId = document.getElementById("citaPaciente").value;
-  const odontologoId = document.getElementById("citaOdontologo").value;
-  const servicioId = document.getElementById("citaServicio").value;
-  const fecha = document.getElementById("citaFecha").value;
-  const horaInicio = document.getElementById("citaHora").value;
-  const estado = document.getElementById("citaEstado").value;
+  const id = getInputValue("citaId");
+  const pacienteId = getInputValue("citaPaciente");
+  const odontologoId = getInputValue("citaOdontologo");
+  const servicioId = getInputValue("citaServicio");
+  const fecha = getInputValue("citaFecha");
+  const horaInicio = getInputValue("citaHora");
+  const estado = getInputValue("citaEstado");
 
   if (!pacienteId || !odontologoId || !servicioId || !fecha || !horaInicio) {
-    errorBox.textContent = "Completa todos los campos obligatorios.";
-    errorBox.classList.remove("hidden");
+    if (errorBox) {
+      errorBox.textContent = "Completa todos los campos obligatorios.";
+      errorBox.classList.remove("hidden");
+    }
     return;
   }
 
   const servicio = (window.getServiciosCache?.() || []).find((s) => s.id === servicioId);
   const horaFin = sumarMinutos(horaInicio, servicio?.duracion_minutos || 30);
 
-  // ---- Validaciones en el cliente (además de la protección en PostgreSQL) ----
+  // Validaciones del cliente
   const fechaObj = new Date(fecha + "T00:00:00");
   const diaSemana = fechaObj.getDay();
 
-  const horarioDia = await window.obtenerHorarioDia(odontologoId, diaSemana);
-  if (!horarioDia) {
-    errorBox.textContent = "⚠ El odontólogo no atiende ese día de la semana.";
-    errorBox.classList.remove("hidden");
-    return;
-  }
-  if (horaInicio < horarioDia.hora_inicio.slice(0,5) || horaFin > horarioDia.hora_fin.slice(0,5)) {
-    errorBox.textContent = "⚠ La hora seleccionada está fuera del horario de atención del odontólogo.";
-    errorBox.classList.remove("hidden");
-    return;
+  if (typeof window.obtenerHorarioDia === "function") {
+    const horarioDia = await window.obtenerHorarioDia(odontologoId, diaSemana);
+    if (!horarioDia) {
+      if (errorBox) {
+        errorBox.textContent = "⚠ El odontólogo no atiende ese día de la semana.";
+        errorBox.classList.remove("hidden");
+      }
+      return;
+    }
+    if (horaInicio < horarioDia.hora_inicio.slice(0, 5) || horaFin > horarioDia.hora_fin.slice(0, 5)) {
+      if (errorBox) {
+        errorBox.textContent = "⚠ La hora seleccionada está fuera del horario de atención del odontólogo.";
+        errorBox.classList.remove("hidden");
+      }
+      return;
+    }
   }
 
-  // Verificar solapamiento con otras citas del mismo odontólogo ese día
+  // Verificar solapamiento con otras citas activas
   let query = supabaseClient
     .from("citas")
     .select("id, hora_inicio, hora_fin")
@@ -212,19 +278,27 @@ async function guardarCita() {
   if (id) query = query.neq("id", id);
 
   const { data: citasDia, error: errCitasDia } = await query;
-  if (errCitasDia) { errorBox.textContent = handleSupabaseError(errCitasDia); errorBox.classList.remove("hidden"); return; }
+  if (errCitasDia) {
+    if (errorBox) {
+      errorBox.textContent = handleSupabaseError(errCitasDia);
+      errorBox.classList.remove("hidden");
+    }
+    return;
+  }
 
   const seSolapan = (citasDia || []).some((c) => {
     const inicioExist = c.hora_inicio.slice(0, 5);
     const finExist = c.hora_fin.slice(0, 5);
     return horaInicio < finExist && horaFin > inicioExist;
   });
+
   if (seSolapan) {
-    errorBox.textContent = "⚠ Este horario ya está ocupado. El odontólogo no está disponible en este horario.";
-    errorBox.classList.remove("hidden");
+    if (errorBox) {
+      errorBox.textContent = "⚠ Este horario ya está ocupado. El odontólogo no está disponible en este horario.";
+      errorBox.classList.remove("hidden");
+    }
     return;
   }
-  // ---- Fin validaciones en cliente ----
 
   const payload = {
     paciente_id: pacienteId,
@@ -234,8 +308,8 @@ async function guardarCita() {
     hora_inicio: horaInicio,
     hora_fin: horaFin,
     estado,
-    motivo: document.getElementById("citaMotivo").value.trim() || null,
-    observaciones: document.getElementById("citaObservaciones").value.trim() || null,
+    motivo: getInputValue("citaMotivo") || null,
+    observaciones: getInputValue("citaObservaciones") || null,
     precio: servicio?.precio || 0,
   };
 
@@ -245,14 +319,78 @@ async function guardarCita() {
 
   const { error } = await query2;
   if (error) {
-    // Aquí también se captura la protección de solapamiento a nivel de PostgreSQL
-    errorBox.textContent = handleSupabaseError(error);
-    errorBox.classList.remove("hidden");
+    if (errorBox) {
+      errorBox.textContent = handleSupabaseError(error);
+      errorBox.classList.remove("hidden");
+    }
     return;
   }
 
-  showToast(id ? "✓ Cita actualizada correctamente." : "✓ Cita creada correctamente.", "success");
-  closeModal("modalCita");
+  if (typeof showToast === "function") {
+    showToast(id ? "✓ Cita actualizada correctamente." : "✓ Cita creada correctamente.", "success");
+  }
+
+  if (typeof closeModal === "function") {
+    closeModal("modalCita");
+  }
+
   await loadCitasData();
-  await loadDashboardData();
+  if (typeof loadDashboardData === "function") await loadDashboardData();
+}
+
+// ------------------------------------------------------------
+// FUNCIONES AUXILIARES DE FORMATO
+// ------------------------------------------------------------
+function dateToYMD(d) {
+  const date = new Date(d);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatFecha(fechaStr) {
+  if (!fechaStr) return "--";
+  const parts = fechaStr.split("-");
+  if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  return fechaStr;
+}
+
+function formatHora(horaStr) {
+  if (!horaStr) return "--";
+  return horaStr.slice(0, 5);
+}
+
+function formatMoneda(valor) {
+  return new Intl.NumberFormat("es-EC", { style: "currency", currency: "USD" }).format(valor || 0);
+}
+
+function labelEstadoCita(estado) {
+  const mapa = {
+    pendiente: "Pendiente",
+    confirmada: "Confirmada",
+    atendida: "Atendida",
+    cancelada: "Cancelada",
+    no_asistio: "No asistió",
+  };
+  return mapa[estado] || estado;
+}
+
+function nombreCompleto(obj) {
+  if (!obj) return "Sin especificar";
+  return `${obj.nombres || ""} ${obj.apellidos || ""}`.trim();
+}
+
+function setInputValue(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.value = val || "";
+}
+
+function getInputValue(id) {
+  const el = document.getElementById(id);
+  return el ? el.value.trim() : "";
+}
+
+function handleSupabaseError(error) {
+  return error ? error.message : "Ocurrió un error inesperado";
 }

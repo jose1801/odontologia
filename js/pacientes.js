@@ -375,10 +375,16 @@ function switchPerfilTab(tab) {
   if (!p) return;
 
   if (tab === "info") renderPerfilInfo(p);
-  if (tab === "citas" && typeof loadPerfilCitas === "function") loadPerfilCitas(p.id);
-  if (tab === "odontograma" && typeof initOdontograma === "function") initOdontograma(p.id);
-  if (tab === "tratamientos" && typeof loadPerfilTratamientos === "function") loadPerfilTratamientos(p.id);
-  if (tab === "historial" && typeof loadPerfilHistorial === "function") loadPerfilHistorial(p.id);
+  if (tab === "citas") loadPerfilCitas(p.id);
+  if (tab === "odontograma") {
+    if (typeof renderOdontogramaPaciente === "function") {
+      renderOdontogramaPaciente(p.id);
+    } else if (typeof initOdontograma === "function") {
+      initOdontograma(p.id);
+    }
+  }
+  if (tab === "tratamientos") loadPerfilTratamientos(p.id);
+  if (tab === "historial") loadPerfilHistorial(p.id);
 }
 
 // Renderizar pestaña Información
@@ -415,6 +421,166 @@ function renderPerfilInfo(p) {
   if (btnDel) btnDel.addEventListener("click", () => eliminarPaciente(p.id));
 }
 
+// ============================================================
+// FUNCIONES DE CARGA DE PESTAÑAS DEL PERFIL
+// ============================================================
+
+// Pestaña: CITAS
+async function loadPerfilCitas(pacienteId) {
+  const cont = document.getElementById("perfilTab-citas");
+  if (!cont) return;
+  cont.innerHTML = `<div class="panel" style="margin-top: 1rem;"><div class="empty-state">Cargando citas...</div></div>`;
+
+  const { data, error } = await supabaseClient
+    .from("citas")
+    .select("*, odontologos(nombres, apellidos), servicios(nombre)")
+    .eq("paciente_id", pacienteId)
+    .order("fecha", { ascending: false });
+
+  if (error) {
+    cont.innerHTML = `<div class="panel" style="margin-top: 1rem;"><div class="empty-state">Error al cargar las citas del paciente.</div></div>`;
+    return;
+  }
+
+  if (!data || !data.length) {
+    cont.innerHTML = `<div class="panel" style="margin-top: 1rem;"><div class="empty-state">El paciente no tiene citas registradas.</div></div>`;
+    return;
+  }
+
+  cont.innerHTML = `
+    <div class="panel" style="margin-top: 1rem;">
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Hora</th>
+              <th>Servicio</th>
+              <th>Odontólogo</th>
+              <th>Estado</th>
+              <th>Motivo</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.map((c) => `
+              <tr>
+                <td>${formatFecha(c.fecha)}</td>
+                <td>${c.hora_inicio ? c.hora_inicio.slice(0, 5) : "--"}</td>
+                <td>${c.servicios?.nombre || "--"}</td>
+                <td>Dr(a). ${nombreCompleto(c.odontologos)}</td>
+                <td><span class="badge badge-${c.estado}">${c.estado}</span></td>
+                <td>${c.motivo || "--"}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// Pestaña: TRATAMIENTOS
+async function loadPerfilTratamientos(pacienteId) {
+  const cont = document.getElementById("perfilTab-tratamientos");
+  if (!cont) return;
+  cont.innerHTML = `<div class="panel" style="margin-top: 1rem;"><div class="empty-state">Cargando tratamientos...</div></div>`;
+
+  const { data, error } = await supabaseClient
+    .from("tratamientos")
+    .select("*, odontologos(nombres, apellidos), servicios(nombre)")
+    .eq("paciente_id", pacienteId)
+    .order("fecha_inicio", { ascending: false });
+
+  if (error) {
+    cont.innerHTML = `<div class="panel" style="margin-top: 1rem;"><div class="empty-state">Error al cargar los tratamientos.</div></div>`;
+    return;
+  }
+
+  if (!data || !data.length) {
+    cont.innerHTML = `<div class="panel" style="margin-top: 1rem;"><div class="empty-state">El paciente no tiene tratamientos registrados.</div></div>`;
+    return;
+  }
+
+  cont.innerHTML = `
+    <div class="panel" style="margin-top: 1rem;">
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Servicio</th>
+              <th>Pieza Dental</th>
+              <th>Odontólogo</th>
+              <th>Fecha Inicio</th>
+              <th>Estado</th>
+              <th>Precio Estimado</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.map((t) => `
+              <tr>
+                <td>${t.servicios?.nombre || "--"}</td>
+                <td>${t.pieza_dental || "General"}</td>
+                <td>Dr(a). ${nombreCompleto(t.odontologos)}</td>
+                <td>${formatFecha(t.fecha_inicio)}</td>
+                <td><span class="badge badge-${t.estado}">${t.estado}</span></td>
+                <td>$${(t.precio_estimado || 0).toFixed(2)}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// Pestaña: HISTORIAL CLÍNICO
+async function loadPerfilHistorial(pacienteId) {
+  const cont = document.getElementById("perfilTab-historial");
+  if (!cont) return;
+  cont.innerHTML = `<div class="panel" style="margin-top: 1rem;"><div class="empty-state">Cargando historial clínico...</div></div>`;
+
+  const { data: citas, error: errCitas } = await supabaseClient
+    .from("citas")
+    .select("*, servicios(nombre), odontologos(nombres, apellidos)")
+    .eq("paciente_id", pacienteId)
+    .order("fecha", { ascending: false });
+
+  if (errCitas) {
+    cont.innerHTML = `<div class="panel" style="margin-top: 1rem;"><div class="empty-state">Error al cargar el historial clínico.</div></div>`;
+    return;
+  }
+
+  if (!citas || !citas.length) {
+    cont.innerHTML = `<div class="panel" style="margin-top: 1rem;"><div class="empty-state">No hay registros en el historial clínico.</div></div>`;
+    return;
+  }
+
+  cont.innerHTML = `
+    <div class="panel" style="margin-top: 1rem;">
+      <h4 class="form-section-title" style="margin-top:0;">Cronología de Atenciones</h4>
+      <div class="list">
+        ${citas.map((c) => `
+          <div class="cita-card" style="margin-bottom: 0.75rem;">
+            <div class="cita-hora">${formatFecha(c.fecha)}<br><small>${c.hora_inicio ? c.hora_inicio.slice(0, 5) : ""}</small></div>
+            <div class="cita-main">
+              <div class="cita-paciente">${c.servicios?.nombre || "Atención Odontológica"}</div>
+              <div class="cita-detalle">Atendido por: Dr(a). ${nombreCompleto(c.odontologos)}</div>
+              ${c.motivo ? `<div style="font-size: 0.85rem; color: var(--texto-suave); margin-top: 4px;">Motivo: ${c.motivo}</div>` : ""}
+              ${c.observaciones ? `<div style="font-size: 0.85rem; color: var(--texto-suave);">Notas: ${c.observaciones}</div>` : ""}
+            </div>
+            <span class="badge badge-${c.estado}">${c.estado}</span>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+
+// Globalizar helper para refrescar tratamientos desde otros módulos
+window.renderPerfilTratamientosRefresh = () => {
+  if (pacienteActualId) loadPerfilTratamientos(pacienteActualId);
+};
+
 // Helper para abrir modales
 function openModal(modalId) {
   const modal = document.getElementById(modalId);
@@ -435,6 +601,7 @@ function closeModal(modalId) {
 
 // Helper de formato de nombres
 function nombreCompleto(p) {
+  if (!p) return "--";
   return `${p.nombres || ""} ${p.apellidos || ""}`.trim();
 }
 
@@ -465,5 +632,9 @@ window.loadPacientesData = loadPacientesData;
 window.abrirModalPaciente = abrirModalPaciente;
 window.eliminarPaciente = eliminarPaciente;
 window.goToPacientePerfil = goToPacientePerfil;
+window.loadPerfilCitas = loadPerfilCitas;
+window.loadPerfilTratamientos = loadPerfilTratamientos;
+window.loadPerfilHistorial = loadPerfilHistorial;
+window.getPacientesCache = () => cachePacientes;
 window.openModal = openModal;
 window.closeModal = closeModal;

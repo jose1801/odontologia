@@ -24,6 +24,21 @@ async function loadServiciosData() {
 window.loadServiciosData = loadServiciosData;
 window.getServiciosCache = () => cacheServicios;
 
+/**
+ * Convierte minutos a un formato legible de horas y minutos.
+ * Ejemplos: 45 -> "45 min", 60 -> "1h", 90 -> "1h 30 min", 125 -> "2h 5 min"
+ */
+function formatearDuracion(minutos) {
+  const mins = parseInt(minutos, 10) || 0;
+  if (mins < 60) return `${mins} min`;
+  
+  const horas = Math.floor(mins / 60);
+  const restoMins = mins % 60;
+  
+  if (restoMins === 0) return `${horas}h`;
+  return `${horas}h ${restoMins} min`;
+}
+
 function renderServiciosTable() {
   const tbody = document.querySelector("#serviciosTable tbody");
   if (!cacheServicios.length) {
@@ -34,7 +49,7 @@ function renderServiciosTable() {
     <tr>
       <td data-label="Nombre">${s.nombre}</td>
       <td data-label="Especialidad">${s.especialidades?.nombre || "--"}</td>
-      <td data-label="Duración">${s.duracion_minutos} min</td>
+      <td data-label="Duración">${formatearDuracion(s.duracion_minutos)}</td>
       <td data-label="Precio">${formatMoneda(s.precio)}</td>
       <td data-label="Estado"><span class="badge ${s.activo ? "badge-activo" : "badge-inactivo"}">${s.activo ? "Activo" : "Inactivo"}</span></td>
       <td class="row-actions-cell">
@@ -57,7 +72,7 @@ function renderServiciosTable() {
 function renderServicioSelects() {
   const activos = cacheServicios.filter((s) => s.activo);
   const options = `<option value="">-- Selecciona un servicio --</option>` +
-    activos.map((s) => `<option value="${s.id}">${s.nombre} (${s.duracion_minutos} min · ${formatMoneda(s.precio)})</option>`).join("");
+    activos.map((s) => `<option value="${s.id}">${s.nombre} (${formatearDuracion(s.duracion_minutos)} · ${formatMoneda(s.precio)})</option>`).join("");
   ["citaServicio", "tratamientoServicio"].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.innerHTML = options;
@@ -76,12 +91,21 @@ function abrirModalServicio(id = null) {
     document.getElementById("servicioId").value = s.id;
     document.getElementById("servicioNombre").value = s.nombre;
     document.getElementById("servicioDescripcion").value = s.descripcion || "";
-    document.getElementById("servicioDuracion").value = s.duracion_minutos;
+    
+    // Desglosar minutos totales en Horas y Minutos
+    const totalMinutos = parseInt(s.duracion_minutos, 10) || 0;
+    const horas = Math.floor(totalMinutos / 60);
+    const minutos = totalMinutos % 60;
+
+    document.getElementById("servicioHoras").value = horas || "";
+    document.getElementById("servicioMinutos").value = minutos || "";
     document.getElementById("servicioPrecio").value = s.precio;
     document.getElementById("servicioEspecialidad").value = s.especialidad_id || "";
     document.getElementById("servicioActivo").checked = s.activo;
   } else {
     document.getElementById("modalServicioTitulo").textContent = "Nuevo servicio";
+    document.getElementById("servicioHoras").value = "";
+    document.getElementById("servicioMinutos").value = "30";
     document.getElementById("servicioActivo").checked = true;
   }
   openModal("modalServicio");
@@ -93,11 +117,13 @@ async function guardarServicio() {
   errorBox.classList.add("hidden");
 
   const nombre = document.getElementById("servicioNombre").value.trim();
-  const duracion = parseInt(document.getElementById("servicioDuracion").value, 10);
+  const horas = parseInt(document.getElementById("servicioHoras").value, 10) || 0;
+  const minutos = parseInt(document.getElementById("servicioMinutos").value, 10) || 0;
+  const duracionTotal = (horas * 60) + minutos;
   const precio = parseFloat(document.getElementById("servicioPrecio").value);
 
-  if (!nombre || !duracion || isNaN(precio)) {
-    errorBox.textContent = "Completa los campos obligatorios (nombre, duración, precio).";
+  if (!nombre || duracionTotal <= 0 || isNaN(precio)) {
+    errorBox.textContent = "Completa los campos obligatorios (nombre, duración mayor a 0 min, precio).";
     errorBox.classList.remove("hidden");
     return;
   }
@@ -105,7 +131,7 @@ async function guardarServicio() {
   const payload = {
     nombre,
     descripcion: document.getElementById("servicioDescripcion").value.trim() || null,
-    duracion_minutos: duracion,
+    duracion_minutos: duracionTotal,
     precio,
     especialidad_id: document.getElementById("servicioEspecialidad").value || null,
     activo: document.getElementById("servicioActivo").checked,
@@ -147,4 +173,6 @@ async function eliminarServicio(id) {
   showToast("✓ Servicio eliminado correctamente.", "success");
   await loadServiciosData();
 }
+
 window.eliminarServicio = eliminarServicio;
+window.formatearDuracion = formatearDuracion;
