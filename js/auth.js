@@ -4,25 +4,25 @@
 
 /**
  * Verifica si hay una sesión activa. Si no la hay, redirige al login.
- * Debe llamarse al cargar cualquier página protegida (index.html).
+ * Debe llamarse al cargar cualquier página protegida.
  */
 async function requireAuth() {
   const { data, error } = await supabaseClient.auth.getSession();
   if (error || !data.session) {
-    window.location.href = "login.html";
+    window.location.href = "/login";
     return null;
   }
   return data.session;
 }
 
 /**
- * Si el usuario ya tiene sesión activa y está en login.html,
- * lo redirige directo al dashboard.
+ * Si el usuario ya tiene sesión activa y está en la vista de login,
+ * lo redirige directo al dashboard principal.
  */
 async function redirectIfAuthenticated() {
   const { data } = await supabaseClient.auth.getSession();
   if (data.session) {
-    window.location.href = "index.html";
+    window.location.href = "/";
   }
 }
 
@@ -40,7 +40,7 @@ async function login(email, password) {
  */
 async function logout() {
   await supabaseClient.auth.signOut();
-  window.location.href = "login.html";
+  window.location.href = "/login";
 }
 
 /**
@@ -65,11 +65,11 @@ async function getCurrentProfile() {
 }
 
 // ------------------------------------------------------------
-// LÓGICA DE LA PANTALLA DE LOGIN (login.html)
+// LÓGICA DE LA PANTALLA DE LOGIN
 // ------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
   const loginForm = document.getElementById("loginForm");
-  if (!loginForm) return; // No estamos en login.html
+  if (!loginForm) return; // No estamos en la pantalla de login
 
   redirectIfAuthenticated();
 
@@ -98,7 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       await login(email, password);
-      window.location.href = "index.html";
+      window.location.href = "/";
     } catch (err) {
       errorBox.textContent = traducirErrorAuth(err.message);
       errorBox.classList.remove("hidden");

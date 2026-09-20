@@ -8,7 +8,7 @@ const AppState = {
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
-  // Solo corre en index.html (donde existe el sidebar)
+  // Solo corre en la aplicación principal (donde existe el sidebar)
   if (!document.getElementById("sidebar")) return;
 
   const session = await requireAuth();

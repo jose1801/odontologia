@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Odontología Integral · Sistema de gestión</title>
-<link rel="stylesheet" href="css/styles.css" />
-<link rel="stylesheet" href="css/responsive.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Odontología Integral · Sistema de gestión</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+  <link rel="stylesheet" href="/css/responsive.css" />
 </head>
 <body>
 
@@ -13,7 +13,7 @@
 <header class="topbar" id="topbar">
   <button class="btn-icon menu-toggle" id="menuToggle" aria-label="Abrir menú">☰</button>
   <div class="brand">
-    <span class="brand-logo">🦷</span>
+    <span class="brand-logo" aria-hidden="true">🦷</span>
     <span class="brand-name">Odontología Integral</span>
   </div>
   <div class="topbar-right">
@@ -31,14 +31,14 @@
   <!-- ===================== SIDEBAR ===================== -->
   <aside class="sidebar" id="sidebar">
     <nav class="nav-menu">
-      <a href="#" class="nav-item active" data-section="dashboard"><span class="nav-icon">🏠</span><span>Dashboard</span></a>
-      <a href="#" class="nav-item" data-section="citas"><span class="nav-icon">📅</span><span>Citas</span></a>
-      <a href="#" class="nav-item" data-section="pacientes"><span class="nav-icon">🧑‍⚕️</span><span>Pacientes</span></a>
-      <a href="#" class="nav-item" data-section="odontologos"><span class="nav-icon">👨‍⚕️</span><span>Odontólogos</span></a>
-      <a href="#" class="nav-item" data-section="especialidades"><span class="nav-icon">🏷️</span><span>Especialidades</span></a>
-      <a href="#" class="nav-item" data-section="servicios"><span class="nav-icon">🩺</span><span>Servicios</span></a>
-      <a href="#" class="nav-item" data-section="tratamientos"><span class="nav-icon">📋</span><span>Tratamientos</span></a>
-      <a href="#" class="nav-item" data-section="horarios"><span class="nav-icon">🕒</span><span>Horarios</span></a>
+      <a href="#dashboard" class="nav-item active" data-section="dashboard"><span class="nav-icon" aria-hidden="true">🏠</span><span>Dashboard</span></a>
+      <a href="#citas" class="nav-item" data-section="citas"><span class="nav-icon" aria-hidden="true">📅</span><span>Citas</span></a>
+      <a href="#pacientes" class="nav-item" data-section="pacientes"><span class="nav-icon" aria-hidden="true">🧑‍⚕️</span><span>Pacientes</span></a>
+      <a href="#odontologos" class="nav-item" data-section="odontologos"><span class="nav-icon" aria-hidden="true">👨‍⚕️</span><span>Odontólogos</span></a>
+      <a href="#especialidades" class="nav-item" data-section="especialidades"><span class="nav-icon" aria-hidden="true">🏷️</span><span>Especialidades</span></a>
+      <a href="#servicios" class="nav-item" data-section="servicios"><span class="nav-icon" aria-hidden="true">🩺</span><span>Servicios</span></a>
+      <a href="#tratamientos" class="nav-item" data-section="tratamientos"><span class="nav-icon" aria-hidden="true">📋</span><span>Tratamientos</span></a>
+      <a href="#horarios" class="nav-item" data-section="horarios"><span class="nav-icon" aria-hidden="true">🕒</span><span>Horarios</span></a>
     </nav>
   </aside>
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -115,7 +115,7 @@
       </div>
     </section>
 
-    <!-- ============ PACIENTES (listado) ============ -->
+    <!-- ============ PACIENTES ============ -->
     <section class="view" id="view-pacientes">
       <div class="view-header">
         <h1>Pacientes</h1>
@@ -245,9 +245,7 @@
   </main>
 </div>
 
-<!-- ===================== MODALES ===================== -->
-
-<!-- Modal: Nueva/editar cita -->
+<!-- Modales -->
 <div class="modal-backdrop hidden" id="modalCita">
   <div class="modal">
     <div class="modal-header">
@@ -258,40 +256,40 @@
       <input type="hidden" id="citaId" />
       <div class="form-row">
         <div class="form-group grow">
-          <label>Paciente</label>
+          <label for="citaPaciente">Paciente</label>
           <select id="citaPaciente" required></select>
         </div>
         <button type="button" class="btn btn-outline btn-sm" id="btnNuevoPacienteDesdeModal">+ Nuevo</button>
       </div>
       <div class="form-group">
-        <label>Odontólogo</label>
+        <label for="citaOdontologo">Odontólogo</label>
         <select id="citaOdontologo" required></select>
       </div>
       <div class="form-group">
-        <label>Servicio</label>
+        <label for="citaServicio">Servicio</label>
         <select id="citaServicio" required></select>
         <small id="citaServicioInfo" class="field-hint"></small>
       </div>
       <div class="form-row">
         <div class="form-group grow">
-          <label>Fecha</label>
+          <label for="citaFecha">Fecha</label>
           <input type="date" id="citaFecha" required />
         </div>
         <div class="form-group grow">
-          <label>Hora</label>
+          <label for="citaHora">Hora</label>
           <input type="time" id="citaHora" required />
         </div>
       </div>
       <div class="form-group">
-        <label>Motivo de consulta</label>
+        <label for="citaMotivo">Motivo de consulta</label>
         <input type="text" id="citaMotivo" placeholder="Ej. Dolor en molar inferior" />
       </div>
       <div class="form-group">
-        <label>Observaciones (opcional)</label>
+        <label for="citaObservaciones">Observaciones (opcional)</label>
         <textarea id="citaObservaciones" rows="2"></textarea>
       </div>
       <div class="form-group">
-        <label>Estado</label>
+        <label for="citaEstado">Estado</label>
         <select id="citaEstado">
           <option value="pendiente">Pendiente</option>
           <option value="confirmada">Confirmada</option>
@@ -309,7 +307,6 @@
   </div>
 </div>
 
-<!-- Modal: Nuevo/editar paciente -->
 <div class="modal-backdrop hidden" id="modalPaciente">
   <div class="modal modal-lg">
     <div class="modal-header">
@@ -320,33 +317,33 @@
       <input type="hidden" id="pacienteId" />
       <h4 class="form-section-title">Datos personales</h4>
       <div class="form-row">
-        <div class="form-group grow"><label>Nombres *</label><input type="text" id="pacienteNombres" required /></div>
-        <div class="form-group grow"><label>Apellidos *</label><input type="text" id="pacienteApellidos" required /></div>
+        <div class="form-group grow"><label for="pacienteNombres">Nombres *</label><input type="text" id="pacienteNombres" required /></div>
+        <div class="form-group grow"><label for="pacienteApellidos">Apellidos *</label><input type="text" id="pacienteApellidos" required /></div>
       </div>
       <div class="form-row">
-        <div class="form-group grow"><label>Cédula *</label><input type="text" id="pacienteCedula" required /></div>
-        <div class="form-group grow"><label>Fecha de nacimiento</label><input type="date" id="pacienteNacimiento" /></div>
-        <div class="form-group grow"><label>Sexo</label>
+        <div class="form-group grow"><label for="pacienteCedula">Cédula *</label><input type="text" id="pacienteCedula" required /></div>
+        <div class="form-group grow"><label for="pacienteNacimiento">Fecha de nacimiento</label><input type="date" id="pacienteNacimiento" /></div>
+        <div class="form-group grow"><label for="pacienteSexo">Sexo</label>
           <select id="pacienteSexo"><option value="">--</option><option value="M">Masculino</option><option value="F">Femenino</option><option value="Otro">Otro</option></select>
         </div>
       </div>
       <div class="form-row">
-        <div class="form-group grow"><label>Teléfono</label><input type="tel" id="pacienteTelefono" /></div>
-        <div class="form-group grow"><label>Correo</label><input type="email" id="pacienteEmail" /></div>
+        <div class="form-group grow"><label for="pacienteTelefono">Teléfono</label><input type="tel" id="pacienteTelefono" /></div>
+        <div class="form-group grow"><label for="pacienteEmail">Correo</label><input type="email" id="pacienteEmail" /></div>
       </div>
-      <div class="form-group"><label>Dirección</label><input type="text" id="pacienteDireccion" /></div>
+      <div class="form-group"><label for="pacienteDireccion">Dirección</label><input type="text" id="pacienteDireccion" /></div>
 
       <h4 class="form-section-title">Contacto de emergencia</h4>
       <div class="form-row">
-        <div class="form-group grow"><label>Nombre</label><input type="text" id="pacienteContactoEmergencia" /></div>
-        <div class="form-group grow"><label>Teléfono</label><input type="tel" id="pacienteTelefonoEmergencia" /></div>
+        <div class="form-group grow"><label for="pacienteContactoEmergencia">Nombre</label><input type="text" id="pacienteContactoEmergencia" /></div>
+        <div class="form-group grow"><label for="pacienteTelefonoEmergencia">Teléfono</label><input type="tel" id="pacienteTelefonoEmergencia" /></div>
       </div>
 
       <h4 class="form-section-title">Información clínica básica</h4>
-      <div class="form-group"><label>Alergias</label><textarea id="pacienteAlergias" rows="2"></textarea></div>
-      <div class="form-group"><label>Medicamentos actuales</label><textarea id="pacienteMedicamentos" rows="2"></textarea></div>
-      <div class="form-group"><label>Antecedentes relevantes</label><textarea id="pacienteAntecedentes" rows="2"></textarea></div>
-      <div class="form-group"><label>Observaciones</label><textarea id="pacienteObservaciones" rows="2"></textarea></div>
+      <div class="form-group"><label for="pacienteAlergias">Alergias</label><textarea id="pacienteAlergias" rows="2"></textarea></div>
+      <div class="form-group"><label for="pacienteMedicamentos">Medicamentos actuales</label><textarea id="pacienteMedicamentos" rows="2"></textarea></div>
+      <div class="form-group"><label for="pacienteAntecedentes">Antecedentes relevantes</label><textarea id="pacienteAntecedentes" rows="2"></textarea></div>
+      <div class="form-group"><label for="pacienteObservaciones">Observaciones</label><textarea id="pacienteObservaciones" rows="2"></textarea></div>
 
       <div id="pacienteFormError" class="alert alert-error hidden"></div>
     </form>
@@ -357,24 +354,23 @@
   </div>
 </div>
 
-<!-- Modal: Odontólogo -->
 <div class="modal-backdrop hidden" id="modalOdontologo">
   <div class="modal">
     <div class="modal-header"><h3 id="modalOdontologoTitulo">Nuevo odontólogo</h3><button class="btn-icon" data-close-modal="modalOdontologo">✕</button></div>
     <form id="formOdontologo" class="modal-body">
       <input type="hidden" id="odontologoId" />
       <div class="form-row">
-        <div class="form-group grow"><label>Nombres *</label><input type="text" id="odontologoNombres" required /></div>
-        <div class="form-group grow"><label>Apellidos *</label><input type="text" id="odontologoApellidos" required /></div>
+        <div class="form-group grow"><label for="odontologoNombres">Nombres *</label><input type="text" id="odontologoNombres" required /></div>
+        <div class="form-group grow"><label for="odontologoApellidos">Apellidos *</label><input type="text" id="odontologoApellidos" required /></div>
       </div>
       <div class="form-row">
-        <div class="form-group grow"><label>Cédula *</label><input type="text" id="odontologoCedula" required /></div>
-        <div class="form-group grow"><label>Teléfono</label><input type="tel" id="odontologoTelefono" /></div>
+        <div class="form-group grow"><label for="odontologoCedula">Cédula *</label><input type="text" id="odontologoCedula" required /></div>
+        <div class="form-group grow"><label for="odontologoTelefono">Teléfono</label><input type="tel" id="odontologoTelefono" /></div>
       </div>
-      <div class="form-group"><label>Correo</label><input type="email" id="odontologoEmail" /></div>
+      <div class="form-group"><label for="odontologoEmail">Correo</label><input type="email" id="odontologoEmail" /></div>
       <div class="form-row">
-        <div class="form-group grow"><label>Especialidad</label><select id="odontologoEspecialidad"></select></div>
-        <div class="form-group grow"><label>Registro profesional</label><input type="text" id="odontologoRegistro" /></div>
+        <div class="form-group grow"><label for="odontologoEspecialidad">Especialidad</label><select id="odontologoEspecialidad"></select></div>
+        <div class="form-group grow"><label for="odontologoRegistro">Registro profesional</label><input type="text" id="odontologoRegistro" /></div>
       </div>
       <div class="form-group">
         <label><input type="checkbox" id="odontologoActivo" checked /> Activo</label>
@@ -388,14 +384,13 @@
   </div>
 </div>
 
-<!-- Modal: Especialidad -->
 <div class="modal-backdrop hidden" id="modalEspecialidad">
   <div class="modal">
     <div class="modal-header"><h3 id="modalEspecialidadTitulo">Nueva especialidad</h3><button class="btn-icon" data-close-modal="modalEspecialidad">✕</button></div>
     <form id="formEspecialidad" class="modal-body">
       <input type="hidden" id="especialidadId" />
-      <div class="form-group"><label>Nombre *</label><input type="text" id="especialidadNombre" required /></div>
-      <div class="form-group"><label>Descripción</label><textarea id="especialidadDescripcion" rows="2"></textarea></div>
+      <div class="form-group"><label for="especialidadNombre">Nombre *</label><input type="text" id="especialidadNombre" required /></div>
+      <div class="form-group"><label for="especialidadDescripcion">Descripción</label><textarea id="especialidadDescripcion" rows="2"></textarea></div>
       <div class="form-group"><label><input type="checkbox" id="especialidadActivo" checked /> Activo</label></div>
       <div id="especialidadFormError" class="alert alert-error hidden"></div>
     </form>
@@ -406,19 +401,17 @@
   </div>
 </div>
 
-<!-- Modal: Servicio -->
 <div class="modal-backdrop hidden" id="modalServicio">
   <div class="modal">
     <div class="modal-header"><h3 id="modalServicioTitulo">Nuevo servicio</h3><button class="btn-icon" data-close-modal="modalServicio">✕</button></div>
     <form id="formServicio" class="modal-body">
       <input type="hidden" id="servicioId" />
-      <div class="form-group"><label>Nombre *</label><input type="text" id="servicioNombre" required /></div>
-      <div class="form-group"><label>Descripción</label><textarea id="servicioDescripcion" rows="2"></textarea></div>
+      <div class="form-group"><label for="servicioNombre">Nombre *</label><input type="text" id="servicioNombre" required /></div>
+      <div class="form-group"><label for="servicioDescripcion">Descripción</label><textarea id="servicioDescripcion" rows="2"></textarea></div>
       
-      <!-- Entrada de Duración por Teclado: Horas y Minutos -->
       <div class="form-row">
         <div class="form-group grow">
-          <label>Duración *</label>
+          <label for="servicioHoras">Duración *</label>
           <div style="display: flex; gap: 8px; align-items: center;">
             <input type="number" min="0" id="servicioHoras" placeholder="0" style="width: 70px;" />
             <span style="font-size: 13px; color: var(--texto-suave);">h</span>
@@ -427,12 +420,12 @@
           </div>
         </div>
         <div class="form-group grow">
-          <label>Precio *</label>
+          <label for="servicioPrecio">Precio *</label>
           <input type="number" min="0" step="0.01" id="servicioPrecio" required />
         </div>
       </div>
 
-      <div class="form-group"><label>Especialidad</label><select id="servicioEspecialidad"></select></div>
+      <div class="form-group"><label for="servicioEspecialidad">Especialidad</label><select id="servicioEspecialidad"></select></div>
       <div class="form-group"><label><input type="checkbox" id="servicioActivo" checked /> Activo</label></div>
       <div id="servicioFormError" class="alert alert-error hidden"></div>
     </form>
@@ -443,7 +436,6 @@
   </div>
 </div>
 
-<!-- Modal: Tratamiento -->
 <div class="modal-backdrop hidden" id="modalTratamiento">
   <div class="modal">
     <div class="modal-header"><h3 id="modalTratamientoTitulo">Nuevo tratamiento</h3><button class="btn-icon" data-close-modal="modalTratamiento">✕</button></div>
@@ -451,16 +443,16 @@
       <input type="hidden" id="tratamientoId" />
       <input type="hidden" id="tratamientoPacienteId" />
       <input type="hidden" id="tratamientoPiezaDental" />
-      <div class="form-group"><label>Paciente</label><input type="text" id="tratamientoPacienteNombre" disabled /></div>
-      <div class="form-group"><label>Pieza dental</label><input type="text" id="tratamientoPiezaDentalDisplay" disabled /></div>
-      <div class="form-group"><label>Odontólogo</label><select id="tratamientoOdontologo" required></select></div>
-      <div class="form-group"><label>Servicio</label><select id="tratamientoServicio"></select></div>
+      <div class="form-group"><label for="tratamientoPacienteNombre">Paciente</label><input type="text" id="tratamientoPacienteNombre" disabled /></div>
+      <div class="form-group"><label for="tratamientoPiezaDentalDisplay">Pieza dental</label><input type="text" id="tratamientoPiezaDentalDisplay" disabled /></div>
+      <div class="form-group"><label for="tratamientoOdontologo">Odontólogo</label><select id="tratamientoOdontologo" required></select></div>
+      <div class="form-group"><label for="tratamientoServicio">Servicio</label><select id="tratamientoServicio"></select></div>
       <div class="form-row">
-        <div class="form-group grow"><label>Fecha inicio</label><input type="date" id="tratamientoFechaInicio" /></div>
-        <div class="form-group grow"><label>Fecha fin</label><input type="date" id="tratamientoFechaFin" /></div>
+        <div class="form-group grow"><label for="tratamientoFechaInicio">Fecha inicio</label><input type="date" id="tratamientoFechaInicio" /></div>
+        <div class="form-group grow"><label for="tratamientoFechaFin">Fecha fin</label><input type="date" id="tratamientoFechaFin" /></div>
       </div>
       <div class="form-row">
-        <div class="form-group grow"><label>Estado</label>
+        <div class="form-group grow"><label for="tratamientoEstado">Estado</label>
           <select id="tratamientoEstado">
             <option value="planificado">Planificado</option>
             <option value="en_proceso">En proceso</option>
@@ -468,9 +460,9 @@
             <option value="cancelado">Cancelado</option>
           </select>
         </div>
-        <div class="form-group grow"><label>Precio estimado</label><input type="number" min="0" step="0.01" id="tratamientoPrecio" /></div>
+        <div class="form-group grow"><label for="tratamientoPrecio">Precio estimado</label><input type="number" min="0" step="0.01" id="tratamientoPrecio" /></div>
       </div>
-      <div class="form-group"><label>Observaciones</label><textarea id="tratamientoObservaciones" rows="2"></textarea></div>
+      <div class="form-group"><label for="tratamientoObservaciones">Observaciones</label><textarea id="tratamientoObservaciones" rows="2"></textarea></div>
       <div id="tratamientoFormError" class="alert alert-error hidden"></div>
     </form>
     <div class="modal-footer">
@@ -480,7 +472,6 @@
   </div>
 </div>
 
-<!-- Modal: Pieza del odontograma -->
 <div class="modal-backdrop hidden" id="modalPieza">
   <div class="modal">
     <div class="modal-header"><h3 id="modalPiezaTitulo">Pieza dental</h3><button class="btn-icon" data-close-modal="modalPieza">✕</button></div>
@@ -491,7 +482,7 @@
         <div><strong>Pieza N°</strong><div id="piezaNumeroDisplay">--</div></div>
       </div>
       <div class="form-group">
-        <label>Superficie</label>
+        <label for="piezaSuperficie">Superficie</label>
         <select id="piezaSuperficie">
           <option value="general">General</option>
           <option value="mesial">Mesial</option>
@@ -503,7 +494,7 @@
         </select>
       </div>
       <div class="form-group">
-        <label>Estado</label>
+        <label for="piezaEstado">Estado</label>
         <select id="piezaEstado">
           <option value="sano">Sano</option>
           <option value="caries">Caries</option>
@@ -519,7 +510,7 @@
         </select>
       </div>
       <div class="form-group">
-        <label>Observaciones</label>
+        <label for="piezaObservaciones">Observaciones</label>
         <textarea id="piezaObservaciones" rows="2"></textarea>
       </div>
       <div id="piezaFormError" class="alert alert-error hidden"></div>
@@ -533,7 +524,6 @@
   </div>
 </div>
 
-<!-- Modal: Confirmación genérica -->
 <div class="modal-backdrop hidden" id="modalConfirm">
   <div class="modal modal-sm">
     <div class="modal-header"><h3 id="modalConfirmTitulo">Confirmar acción</h3><button class="btn-icon" data-close-modal="modalConfirm">✕</button></div>
@@ -545,22 +535,21 @@
   </div>
 </div>
 
-<!-- Toasts -->
 <div class="toast-container" id="toastContainer"></div>
 
 <!-- ===================== SCRIPTS ===================== -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/app.js"></script>
-<script src="js/dashboard.js"></script>
-<script src="js/especialidades.js"></script>
-<script src="js/servicios.js"></script>
-<script src="js/odontologos.js"></script>
-<script src="js/horarios.js"></script>
-<script src="js/pacientes.js"></script>
-<script src="js/odontograma.js"></script>
-<script src="js/tratamientos.js"></script>
-<script src="js/citas.js"></script>
+<script src="/js/supabase.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/app.js"></script>
+<script src="/js/dashboard.js"></script>
+<script src="/js/especialidades.js"></script>
+<script src="/js/servicios.js"></script>
+<script src="/js/odontologos.js"></script>
+<script src="/js/horarios.js"></script>
+<script src="/js/pacientes.js"></script>
+<script src="/js/odontograma.js"></script>
+<script src="/js/tratamientos.js"></script>
+<script src="/js/citas.js"></script>
 </body>
 </html>
